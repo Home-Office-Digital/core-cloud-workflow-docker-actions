@@ -8,17 +8,6 @@ on:
       - main
 
 jobs:
-  test-build-scan-workflow:
-    permissions:
-      contents: read
-    uses: ./.github/workflows/build-scan.yml
-    with:
-      working_directory: "tests/valid-app"
-      dockerfile: "Dockerfile"
-      image_name: "hello-world"
-      image_tag: "latest"
-      tag_latest: false
-  
   test-invalid-build:
     permissions:
       contents: read

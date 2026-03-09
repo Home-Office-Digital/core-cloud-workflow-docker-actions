@@ -17,7 +17,7 @@ runs:
   steps:
     - name: Run Trivy vulnerability scanner
       id: trivy_scan
-      uses: aquasecurity/trivy-action@0.34.0
+      uses: aquasecurity/trivy-action@0.34.2
       env:
         TRIVY_DB_REPOSITORY: ghcr.io/aquasecurity/trivy-db:2
         TRIVY_JAVA_DB_REPOSITORY: ghcr.io/aquasecurity/trivy-java-db:1
