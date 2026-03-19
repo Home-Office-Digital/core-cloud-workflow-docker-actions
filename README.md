@@ -24,7 +24,7 @@ Workflows can be used as
 ```yml
 jobs:
     build-scan:
-        uses: UKHomeOffice/core-cloud-workflow-docker-actions/.github/workflows/build-scan.yml@1.1.0
+        uses: Home-Office-Digital/core-cloud-workflow-docker-actions/.github/workflows/build-scan.yml@1.1.1
         with:
             working_directory: "."
             dockerfile: "Dockerfile"
@@ -33,7 +33,7 @@ jobs:
             tag_latest: true
 
     build-scan-push:
-        uses: UKHomeOffice/core-cloud-workflow-docker-actions/.github/workflows/build-scan-push.yml@1.1.0
+        uses: Home-Office-Digital/core-cloud-workflow-docker-actions/.github/workflows/build-scan-push.yml@1.1.1
         with:
             working_directory: "."
             dockerfile: "Dockerfile"
