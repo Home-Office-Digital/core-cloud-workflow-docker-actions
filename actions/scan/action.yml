@@ -5,6 +5,11 @@ inputs:
   image:
     description: "Docker image to scan (e.g. my-image:latest)"
     required: true
+    
+  trivy_ignorefiles:
+      required: false
+      type: string
+      default: ".trivyignore"
 
 outputs:
   trivy_scan_exit_code:
@@ -27,6 +32,8 @@ runs:
         severity: "HIGH,CRITICAL"
         vuln-type: "os,library"
         exit-code: 1
+        ignore-unfixed: true
+        trivyignores: "${{ inputs.trivy_ignorefiles }}"
 
     - name: Set Trivy scan exit code
       id: trivy_scan_exit_code
