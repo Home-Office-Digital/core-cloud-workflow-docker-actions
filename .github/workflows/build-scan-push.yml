@@ -66,7 +66,7 @@ jobs:
         uses: Home-Office-Digital/core-cloud-workflow-docker-actions/actions/push@feature/CCL-9403
         with:
           working_directory: ${{ inputs.working_directory }}
-          dockerfile: ${{ inputs.working_directory }}/${{ inputs.dockerfile }}
+          dockerfile: ${{ inputs.dockerfile }}
           image_name: ${{ inputs.image_name }}
           image_tag: ${{ inputs.image_tag }}
           tag_latest: ${{ inputs.tag_latest }}
