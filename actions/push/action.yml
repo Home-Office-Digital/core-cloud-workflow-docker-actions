@@ -79,7 +79,7 @@ runs:
       uses: docker/build-push-action@v6
       with:
         context: ${{ github.workspace }}
-        file: ${{ github.workspace }}/${{ inputs.working_directory }}/${{ inputs.dockerfile }}
+        file: ${{ github.workspace }}/bases/node-npm/${{ inputs.dockerfile }}
         push: true
         tags: ${{ steps.docker_meta.outputs.tags }}
     
