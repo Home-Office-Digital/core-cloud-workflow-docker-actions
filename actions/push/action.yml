@@ -78,8 +78,8 @@ runs:
       id: docker_push
       uses: docker/build-push-action@v6
       with:
-        context: .
-        file: ${{ inputs.working_directory }}/${{ inputs.dockerfile }}
+        context: ${{ github.workspace }}
+        file: ${{ github.workspace }}/${{ inputs.working_directory }}/${{ inputs.dockerfile }}
         push: true
         tags: ${{ steps.docker_meta.outputs.tags }}
     
