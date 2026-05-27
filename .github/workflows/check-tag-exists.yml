@@ -33,7 +33,7 @@ jobs:
         uses: Home-Office-Digital/core-cloud-workflow-docker-actions/actions/setup@1.2.0
 
       - name: Push Docker Image to ECR
-        uses: Home-Office-Digital/core-cloud-workflow-docker-actions/actions/check-tag@CCL-9403
+        uses: Home-Office-Digital/core-cloud-workflow-docker-actions/actions/check-tag@feature/CCL-9403
         with:
           image_name: ${{ inputs.image_name }}
           image_tag: ${{ inputs.image_tag }}
