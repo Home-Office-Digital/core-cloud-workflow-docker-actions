@@ -53,9 +53,12 @@ runs:
       shell: bash
       run: |
         if docker manifest inspect ${{ steps.login_ecr.outputs.registry }}/${{ inputs.image_name }}:${{ inputs.image_tag }} > /dev/null 2>&1; then
-          echo "exists=true" >> $GITHUB_OUTPUT
+          # echo "exists=true" >> $GITHUB_OUTPUT
+          echo "::error::Pipeline aborted! The image tag: ${{ inputs.image_tag }} already exists in ECR"
+          exit 1 # <--- This immediately fails the step right here
         else
-          echo "exists=false" >> $GITHUB_OUTPUT
+          # echo "exists=false" >> $GITHUB_OUTPUT
+          echo "Image tag does not exist. Proceeding..."
         fi
 
 
