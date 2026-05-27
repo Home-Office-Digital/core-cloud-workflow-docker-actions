@@ -63,7 +63,7 @@ jobs:
 
       - name: Push Docker Image to ECR
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        uses: Home-Office-Digital/core-cloud-workflow-docker-actions/actions/push@1.2.0
+        uses: Home-Office-Digital/core-cloud-workflow-docker-actions/actions/push@feature/CCL-9403
         with:
           working_directory: ${{ inputs.working_directory }}
           dockerfile: ${{ inputs.working_directory }}/${{ inputs.dockerfile }}
