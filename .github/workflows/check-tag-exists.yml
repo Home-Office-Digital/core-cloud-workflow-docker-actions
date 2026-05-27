@@ -32,7 +32,7 @@ jobs:
       - name: Set up Docker 
         uses: Home-Office-Digital/core-cloud-workflow-docker-actions/actions/setup@1.2.0
 
-      - name: Push Docker Image to ECR
+      - name: Check image already exists in ECR
         uses: Home-Office-Digital/core-cloud-workflow-docker-actions/actions/check-tag@feature/CCL-9403
         with:
           image_name: ${{ inputs.image_name }}
