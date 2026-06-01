@@ -59,7 +59,7 @@ jobs:
         uses: Home-Office-Digital/core-cloud-workflow-docker-actions/actions/setup@1.2.0
       
       - name: Pull Base Docker Image From ECR
-        uses: Home-Office-Digital/core-cloud-workflow-docker-actions/actions/pull/action.yml@feature/CCL-8872
+        uses: Home-Office-Digital/core-cloud-workflow-docker-actions/actions/pull@feature/CCL-8872
         with:
           aws_region: "eu-west-2"
           aws_ecr_account_id: ${{ secrets.AWS_BASE_ECR_ACCOUNT_ID }}
