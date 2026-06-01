@@ -39,6 +39,12 @@ on:
       ROLE_TO_ASSUME:
         description: "The role to assume for AWS ECR access"
         required: true
+      AWS_BASE_ECR_ACCOUNT_ID:
+        description: "AWS Account ID for ECR"
+        required: true
+      BASE_ROLE_TO_ASSUME:
+        description: "The role to assume for AWS ECR access"
+        required: true
 
 jobs:
   build-scan-push:
