@@ -1,0 +1,201 @@
+name: Docker copy between ECR registries
+description: "Pull a Docker image from a source AWS ECR registry and push it to a target AWS ECR registry using separate assumed roles."
+
+inputs:
+  source_aws_region:
+    description: "AWS region for the source ECR registry"
+    required: false
+    type: string
+    default: "eu-west-2"
+
+  source_aws_ecr_account_id:
+    description: "AWS account ID for the source ECR registry"
+    required: true
+    type: string
+
+  source_role_to_assume:
+    description: "Role to assume for pulling from the source ECR registry"
+    required: true
+    type: string
+
+  target_aws_region:
+    description: "AWS region for the target ECR registry"
+    required: false
+    type: string
+    default: "eu-west-2"
+
+  target_aws_ecr_account_id:
+    description: "AWS account ID for the target ECR registry"
+    required: true
+    type: string
+
+  target_role_to_assume:
+    description: "Role to assume for pushing to the target ECR registry"
+    required: true
+    type: string
+
+  source_image_name:
+    description: "Source image repository name"
+    required: true
+    type: string
+
+  source_image_tag:
+    description: "Source image tag. Used when latest_image_count is 1."
+    required: false
+    type: string
+    default: "latest"
+
+  latest_image_count:
+    description: "Number of latest tagged images to copy from the source repository"
+    required: false
+    type: string
+    default: "1"
+
+  target_image_name:
+    description: "Target image repository name"
+    required: false
+    type: string
+    default: ""
+
+  target_image_tag:
+    description: "Target image tag. Used when latest_image_count is 1."
+    required: false
+    type: string
+    default: "latest"
+
+  tag_latest:
+    description: "Should the target image also be tagged as latest"
+    required: false
+    type: boolean
+    default: false
+
+outputs:
+  docker_copy_exit_code:
+    description: "The exit code from the docker copy command"
+    value: ${{ steps.docker_copy_exit_code.outputs.exit_code }}
+
+runs:
+  using: "composite"
+
+  steps:
+    - name: Resolve target image name
+      id: resolve_target_image_name
+      shell: bash
+      run: |
+        target_image_name="${{ inputs.target_image_name }}"
+
+        if [ -z "$target_image_name" ]; then
+          target_image_name="${{ inputs.source_image_name }}"
+        fi
+
+        echo "target_image_name=$target_image_name" >> "$GITHUB_OUTPUT"
+
+    - name: Assume role in source account
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: ${{ inputs.source_role_to_assume }}
+        aws-region: ${{ inputs.source_aws_region }}
+
+    - name: Login to source Amazon ECR
+      uses: aws-actions/amazon-ecr-login@v2
+
+    - name: Resolve source image tags
+      shell: bash
+      run: |
+        latest_image_count="${{ inputs.latest_image_count }}"
+        source_image_tag="${{ inputs.source_image_tag }}"
+        source_tags_file="${RUNNER_TEMP}/source_image_tags.txt"
+
+        if ! [[ "$latest_image_count" =~ ^[1-9][0-9]*$ ]]; then
+          echo "latest_image_count must be a positive integer" >&2
+          exit 1
+        fi
+
+        rm -f "$source_tags_file"
+
+        if [ "$latest_image_count" = "1" ]; then
+          printf '%s\n' "$source_image_tag" > "$source_tags_file"
+        else
+          aws ecr describe-images \
+            --repository-name "${{ inputs.source_image_name }}" \
+            --registry-id "${{ inputs.source_aws_ecr_account_id }}" \
+            --filter tagStatus=TAGGED \
+            --query 'reverse(sort_by(imageDetails,&imagePushedAt))[].imageTags[]' \
+            --output text \
+            | tr '\t' '\n' \
+            | awk 'NF && !seen[$0]++' \
+            | head -n "$latest_image_count" > "$source_tags_file"
+        fi
+
+        if [ ! -s "$source_tags_file" ]; then
+          echo "No source image tags were resolved for repository '${{ inputs.source_image_name }}'" >&2
+          exit 1
+        fi
+
+        echo "Source tags selected for copy:"
+        cat "$source_tags_file"
+
+    - name: Pull source image
+      shell: bash
+      run: |
+        source_registry="${{ inputs.source_aws_ecr_account_id }}.dkr.ecr.${{ inputs.source_aws_region }}.amazonaws.com"
+        source_tags_file="${RUNNER_TEMP}/source_image_tags.txt"
+
+        while IFS= read -r source_tag; do
+          source_image="$source_registry/${{ inputs.source_image_name }}:$source_tag"
+          docker pull "$source_image"
+        done < "$source_tags_file"
+
+    - name: Assume role in target account
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: ${{ inputs.target_role_to_assume }}
+        aws-region: ${{ inputs.target_aws_region }}
+
+    - name: Login to target Amazon ECR
+      uses: aws-actions/amazon-ecr-login@v2
+
+    - name: Retag and push image to target ECR
+      id: docker_copy
+      shell: bash
+      run: |
+        latest_image_count="${{ inputs.latest_image_count }}"
+        source_registry="${{ inputs.source_aws_ecr_account_id }}.dkr.ecr.${{ inputs.source_aws_region }}.amazonaws.com"
+        target_registry="${{ inputs.target_aws_ecr_account_id }}.dkr.ecr.${{ inputs.target_aws_region }}.amazonaws.com"
+        source_tags_file="${RUNNER_TEMP}/source_image_tags.txt"
+        first_source_tag=""
+
+        while IFS= read -r source_tag; do
+          if [ -z "$first_source_tag" ]; then
+            first_source_tag="$source_tag"
+          fi
+
+          source_image="$source_registry/${{ inputs.source_image_name }}:$source_tag"
+
+          if [ "$latest_image_count" = "1" ]; then
+            target_tag="${{ inputs.target_image_tag }}"
+          else
+            target_tag="$source_tag"
+          fi
+
+          target_image="$target_registry/${{ steps.resolve_target_image_name.outputs.target_image_name }}:$target_tag"
+          docker tag "$source_image" "$target_image"
+          docker push "$target_image"
+        done < "$source_tags_file"
+
+        if [ "${{ inputs.tag_latest }}" = "true" ]; then
+          source_image="$source_registry/${{ inputs.source_image_name }}:$first_source_tag"
+          target_latest_image="$target_registry/${{ steps.resolve_target_image_name.outputs.target_image_name }}:latest"
+          docker tag "$source_image" "$target_latest_image"
+          docker push "$target_latest_image"
+        fi
+
+    - name: Set docker copy exit code
+      id: docker_copy_exit_code
+      shell: bash
+      run: |
+        if [ "${{ steps.docker_copy.conclusion }}" = "success" ]; then
+          echo "exit_code=0" >> "$GITHUB_OUTPUT"
+        else
+          echo "exit_code=1" >> "$GITHUB_OUTPUT"
+        fi
