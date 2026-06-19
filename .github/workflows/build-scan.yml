@@ -60,7 +60,7 @@ jobs:
           tag_latest: ${{ inputs.tag_latest }}
       
       - name: Scan Docker Image with Trivy
-        uses: Home-Office-Digital/core-cloud-workflow-docker-actions/actions/scan@1.2.0
+        uses: Home-Office-Digital/core-cloud-workflow-docker-actions/actions/scan@feature/CCL-8872-v1
         with:
           image: ${{ inputs.image_name }}:${{ inputs.image_tag }}
           trivy_ignorefiles: ${{ inputs.trivy_ignorefiles }}
