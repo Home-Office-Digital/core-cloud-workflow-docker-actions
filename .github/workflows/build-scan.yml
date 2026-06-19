@@ -27,6 +27,16 @@ on:
         required: false
         type: boolean
         default: true
+      trivy_ignorefiles:
+        description: "Trivy ignore files passed to scan action"
+        required: false
+        type: string
+        default: ".trivyignore"
+      trivy_skip_files:
+        description: "Trivy skip-files passed to scan action"
+        required: false
+        type: string
+        default: ""
 
 jobs:
   build-scan:
@@ -53,3 +63,5 @@ jobs:
         uses: Home-Office-Digital/core-cloud-workflow-docker-actions/actions/scan@1.2.0
         with:
           image: ${{ inputs.image_name }}:${{ inputs.image_tag }}
+          trivy_ignorefiles: ${{ inputs.trivy_ignorefiles }}
+          trivy_skip_files: ${{ inputs.trivy_skip_files }}

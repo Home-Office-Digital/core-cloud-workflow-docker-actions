@@ -5,11 +5,15 @@ inputs:
   image:
     description: "Docker image to scan (e.g. my-image:latest)"
     required: true
-    
+
   trivy_ignorefiles:
-      required: false
-      type: string
-      default: ".trivyignore"
+    description: "Comma-separated list of .trivyignore files, or a single .trivyignore.yaml file"
+    required: false
+    default: ".trivyignore"
+  trivy_skip_files:
+    description: "Comma-separated list of files to skip during Trivy scan"
+    required: false
+    default: ""
 
 outputs:
   trivy_scan_exit_code:
@@ -34,6 +38,7 @@ runs:
         exit-code: 1
         ignore-unfixed: true
         trivyignores: "${{ inputs.trivy_ignorefiles }}"
+        skip-files: "${{ inputs.trivy_skip_files }}"
 
     - name: Set Trivy scan exit code
       id: trivy_scan_exit_code

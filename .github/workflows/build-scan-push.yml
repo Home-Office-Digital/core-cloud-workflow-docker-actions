@@ -28,9 +28,15 @@ on:
         type: boolean
         default: true
       trivy_ignorefiles:
+        description: "Trivy ignore files passed to scan action"
         required: false
         type: string
         default: ".trivyignore"
+      trivy_skip_files:
+        description: "Trivy skip-files passed to scan action"
+        required: false
+        type: string
+        default: ""
 
     secrets:
       AWS_ECR_ACCOUNT_ID:
@@ -73,6 +79,7 @@ jobs:
         with:
           image: ${{ inputs.image_name }}:${{ inputs.image_tag }}
           trivy_ignorefiles: ${{ inputs.trivy_ignorefiles }}
+          trivy_skip_files: ${{ inputs.trivy_skip_files }}
 
       - name: Push Docker Image to ECR
         uses: Home-Office-Digital/core-cloud-workflow-docker-actions/actions/push@1.2.0
