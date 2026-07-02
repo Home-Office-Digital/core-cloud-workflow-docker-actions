@@ -6,15 +6,55 @@ inputs:
     description: "Docker image to scan (e.g. my-image:latest)"
     required: true
 
+  exemption_key:
+    description: >
+      Key used to look up a centrally managed HIGH/CRITICAL exemption file, stored in
+      this repository at exemptions/<exemption_key>.trivyignore.yaml.
+    required: false
+    type: string
+    default: ""
+
 outputs:
   trivy_scan_exit_code:
     description: "The exit code from the Trivy scan command"
     value: ${{ steps.trivy_scan_exit_code.outputs.exit_code }}
 
+  exemption_file_applied:
+    description: "Path to the centrally managed exemption file applied to this scan, empty if none matched"
+    value: ${{ steps.resolve_exemptions.outputs.ignorefile_path }}
+
 runs:
   using: "composite"
 
   steps:
+    - name: Resolve centrally managed exemptions
+      id: resolve_exemptions
+      shell: bash
+      run: |
+        set -e
+
+        key="${{ inputs.exemption_key }}"
+        if [ -z "$key" ]; then
+          key="${{ github.repository }}"
+        fi
+
+        case "$key" in
+          *..*)
+            echo "::error::exemption_key '$key' must not contain '..'"
+            exit 1
+            ;;
+        esac
+
+        exemptions_file="${{ github.action_path }}/../../exemptions/${key}.trivyignore.yaml"
+
+        if [ -f "$exemptions_file" ]; then
+          echo "Applying centrally managed exemption file for '$key'"
+          echo "ignorefile_path=$exemptions_file" >> "$GITHUB_OUTPUT"
+        else
+          echo "No centrally managed exemptions found for '$key'"
+          echo "ignorefile_path=" >> "$GITHUB_OUTPUT"
+        fi
+
     - name: Run Trivy vulnerability scanner
       id: trivy_scan
       # Home-Office-Digital/trivy-action@v0.35.0
@@ -27,6 +67,7 @@ runs:
         severity: "HIGH,CRITICAL"
         vuln-type: "os,library"
         exit-code: 1
+        trivyignores: ${{ steps.resolve_exemptions.outputs.ignorefile_path }}
 
     - name: Set Trivy scan exit code
       id: trivy_scan_exit_code

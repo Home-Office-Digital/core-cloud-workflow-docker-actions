@@ -46,3 +46,8 @@ jobs:
 ```
 
 The actions can be used in similar manner as well
+
+## HIGH/CRITICAL exemptions
+
+If a consuming repository has a risk-accepted exception and it has been approveed by SWG, then a PR is raised in the `exemptions/` directory.
+See [`exemptions/README.md`](exemptions/README.md) for the request process.

@@ -63,3 +63,113 @@ jobs:
             exit 1
           fi
 
+  test-centrally-managed-exemptions:
+    permissions:
+      contents: read
+    name: Test - Centrally managed exemptions
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Run docker build (fixture with known findings)
+        id: build
+        uses: ./actions/build
+        with:
+          working_directory: "tests/invalid-scan"
+          image_name: "hello-world"
+          image_tag: "exemption-test"
+
+      - name: Baseline trivy scan (non-blocking) to discover a real finding
+        id: baseline_scan
+        uses: Home-Office-Digital/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
+        env:
+          TRIVY_DB_REPOSITORY: ghcr.io/aquasecurity/trivy-db:2
+          TRIVY_JAVA_DB_REPOSITORY: ghcr.io/aquasecurity/trivy-java-db:1
+        with:
+          image-ref: "hello-world:exemption-test"
+          severity: "HIGH,CRITICAL"
+          vuln-type: "os,library"
+          format: "json"
+          output: "trivy-baseline.json"
+          exit-code: 0
+
+      - name: Extract every CVE ID from the baseline scan
+        id: discover_cve
+        shell: bash
+        run: |
+          cves=$(jq -r '[.Results[]?.Vulnerabilities[]?.VulnerabilityID] | unique | .[]' trivy-baseline.json)
+          {
+            echo "cves<<EOF"
+            echo "$cves"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+          if [ -z "$cves" ]; then
+            echo "cve_count=0" >> "$GITHUB_OUTPUT"
+            echo "::warning::No HIGH/CRITICAL finding in the fixture image; skipping exemption assertions."
+          else
+            echo "cve_count=$(echo "$cves" | wc -l | tr -d ' ')" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Run scan with no matching exemption (expect failure)
+        id: scan_unexempted
+        if: steps.discover_cve.outputs.cve_count != '0'
+        uses: ./actions/scan
+        continue-on-error: true
+        with:
+          image: "hello-world:exemption-test"
+          exemption_key: "self-test/no-such-key"
+
+      - name: Assert unexempted scan failed
+        if: steps.discover_cve.outputs.cve_count != '0'
+        run: |
+          if [ "${{ steps.scan_unexempted.outputs.trivy_scan_exit_code }}" -eq 0 ]; then
+            echo "Expected scan without a matching exemption to fail but it succeeded."
+            exit 1
+          fi
+          if [ -n "${{ steps.scan_unexempted.outputs.exemption_file_applied }}" ]; then
+            echo "Expected no exemption file to be applied but one was."
+            exit 1
+          fi
+
+      - name: Write temporary central exemption fixture
+        if: steps.discover_cve.outputs.cve_count != '0'
+        shell: bash
+        env:
+          CVES: ${{ steps.discover_cve.outputs.cves }}
+        run: |
+          mkdir -p exemptions/self-test
+          {
+            echo "vulnerabilities:"
+            while IFS= read -r cve; do
+              [ -z "$cve" ] && continue
+              echo "  - id: ${cve}"
+              echo "    statement: \"Self-test fixture verifying centrally managed exemptions suppress a real finding.\""
+              echo "    expired_at: \"2099-01-01T00:00:00Z\""
+            done <<< "$CVES"
+          } > exemptions/self-test/exemption-check.trivyignore.yaml
+          cat exemptions/self-test/exemption-check.trivyignore.yaml
+
+      - name: Run scan with a matching centrally managed exemption (expect success)
+        id: scan_exempted
+        if: steps.discover_cve.outputs.cve_count != '0'
+        uses: ./actions/scan
+        with:
+          image: "hello-world:exemption-test"
+          exemption_key: "self-test/exemption-check"
+
+      - name: Assert exempted scan succeeded
+        if: steps.discover_cve.outputs.cve_count != '0'
+        run: |
+          if [ "${{ steps.scan_exempted.outputs.trivy_scan_exit_code }}" -ne 0 ]; then
+            echo "Expected scan with a matching centrally managed exemption to succeed but it failed."
+            exit 1
+          fi
+          if [ -z "${{ steps.scan_exempted.outputs.exemption_file_applied }}" ]; then
+            echo "Expected the exemption file to be reported as applied but it wasn't."
+            exit 1
+          fi
+
+      - name: Clean up fixture
+        if: always()
+        run: rm -rf exemptions/self-test
+
