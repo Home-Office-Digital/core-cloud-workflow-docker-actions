@@ -93,19 +93,26 @@ jobs:
           output: "trivy-baseline.json"
           exit-code: 0
 
-      - name: Extract a CVE ID from the baseline scan
+      - name: Extract every CVE ID from the baseline scan
         id: discover_cve
         shell: bash
         run: |
-          cve=$(jq -r '[.Results[]?.Vulnerabilities[]?.VulnerabilityID] | first // empty' trivy-baseline.json)
-          echo "cve=$cve" >> "$GITHUB_OUTPUT"
-          if [ -z "$cve" ]; then
+          cves=$(jq -r '[.Results[]?.Vulnerabilities[]?.VulnerabilityID] | unique | .[]' trivy-baseline.json)
+          {
+            echo "cves<<EOF"
+            echo "$cves"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+          if [ -z "$cves" ]; then
+            echo "cve_count=0" >> "$GITHUB_OUTPUT"
             echo "::warning::No HIGH/CRITICAL finding in the fixture image; skipping exemption assertions."
+          else
+            echo "cve_count=$(echo "$cves" | wc -l | tr -d ' ')" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Run scan with no matching exemption (expect failure)
         id: scan_unexempted
-        if: steps.discover_cve.outputs.cve != ''
+        if: steps.discover_cve.outputs.cve_count != '0'
         uses: ./actions/scan
         continue-on-error: true
         with:
@@ -113,7 +120,7 @@ jobs:
           exemption_key: "self-test/no-such-key"
 
       - name: Assert unexempted scan failed
-        if: steps.discover_cve.outputs.cve != ''
+        if: steps.discover_cve.outputs.cve_count != '0'
         run: |
           if [ "${{ steps.scan_unexempted.outputs.trivy_scan_exit_code }}" -eq 0 ]; then
             echo "Expected scan without a matching exemption to fail but it succeeded."
@@ -125,27 +132,33 @@ jobs:
           fi
 
       - name: Write temporary central exemption fixture
-        if: steps.discover_cve.outputs.cve != ''
+        if: steps.discover_cve.outputs.cve_count != '0'
         shell: bash
+        env:
+          CVES: ${{ steps.discover_cve.outputs.cves }}
         run: |
           mkdir -p exemptions/self-test
-          cat > exemptions/self-test/exemption-check.trivyignore.yaml <<EOF
-          vulnerabilities:
-            - id: ${{ steps.discover_cve.outputs.cve }}
-              statement: "Self-test fixture verifying centrally managed exemptions suppress a real finding."
-              expired_at: "2099-01-01T00:00:00Z"
-          EOF
+          {
+            echo "vulnerabilities:"
+            while IFS= read -r cve; do
+              [ -z "$cve" ] && continue
+              echo "  - id: ${cve}"
+              echo "    statement: \"Self-test fixture verifying centrally managed exemptions suppress a real finding.\""
+              echo "    expired_at: \"2099-01-01T00:00:00Z\""
+            done <<< "$CVES"
+          } > exemptions/self-test/exemption-check.trivyignore.yaml
+          cat exemptions/self-test/exemption-check.trivyignore.yaml
 
       - name: Run scan with a matching centrally managed exemption (expect success)
         id: scan_exempted
-        if: steps.discover_cve.outputs.cve != ''
+        if: steps.discover_cve.outputs.cve_count != '0'
         uses: ./actions/scan
         with:
           image: "hello-world:exemption-test"
           exemption_key: "self-test/exemption-check"
 
       - name: Assert exempted scan succeeded
-        if: steps.discover_cve.outputs.cve != ''
+        if: steps.discover_cve.outputs.cve_count != '0'
         run: |
           if [ "${{ steps.scan_exempted.outputs.trivy_scan_exit_code }}" -ne 0 ]; then
             echo "Expected scan with a matching centrally managed exemption to succeed but it failed."
