@@ -55,7 +55,8 @@ jobs:
           tag_latest: ${{ inputs.tag_latest }}
       
       - name: Scan Docker Image with Trivy
-        uses: Home-Office-Digital/core-cloud-workflow-docker-actions/actions/scan@1.2.0
+        # TODO: repin to the released tag that includes exemption_key once this branch is merged and tagged
+        uses: Home-Office-Digital/core-cloud-workflow-docker-actions/actions/scan@feature/ccl-10172
         with:
           image: ${{ inputs.image_name }}:${{ inputs.image_tag }}
           exemption_key: ${{ inputs.exemption_key }}
