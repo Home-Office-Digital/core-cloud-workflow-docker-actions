@@ -133,7 +133,7 @@ jobs:
           vulnerabilities:
             - id: ${{ steps.discover_cve.outputs.cve }}
               statement: "Self-test fixture verifying centrally managed exemptions suppress a real finding."
-              expired_at: "2099-01-01"
+              expired_at: "2099-01-01T00:00:00Z"
           EOF
 
       - name: Run scan with a matching centrally managed exemption (expect success)

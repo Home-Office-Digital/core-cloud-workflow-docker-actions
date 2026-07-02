@@ -32,6 +32,8 @@ can override the lookup key per-scan via the `exemption_key` input.
    and `expired_at` (a review-by date — exemptions are not permanent). Trivy
    stops applying an entry once `expired_at` has passed, so the scan will
    start failing again and the exemption must be actively renewed.
+   `expired_at` must be a full RFC3339 timestamp (`YYYY-MM-DDT00:00:00Z`), not
+   a bare date — a bare date fails to parse and hard-errors the scan.
 3. Get it approved and merged like any other change in this repo.
 
 ## File format
@@ -41,7 +43,7 @@ can override the lookup key per-scan via the `exemption_key` input.
 vulnerabilities:
   - id: CVE-2023-12345
     statement: "No upstream fix available; mitigated by network policy CCL-1234. Reviewed by #core-cloud-sauron."
-    expired_at: "2026-10-01"
+    expired_at: "2026-10-01T00:00:00Z"
 
   - id: CVE-2023-67890
     # Optional: only exempt the finding for a specific file/package path
@@ -49,7 +51,7 @@ vulnerabilities:
     paths:
       - "usr/lib/python3.12/site-packages/some-package/METADATA"
     statement: "Vendored copy, unused code path. JIRA-4321."
-    expired_at: "2026-09-15"
+    expired_at: "2026-09-15T00:00:00Z"
 ```
 
 Only `vulnerabilities` entries are honoured by this feature — the scan
