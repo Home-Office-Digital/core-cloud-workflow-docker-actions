@@ -27,6 +27,11 @@ on:
         required: false
         type: boolean
         default: true
+      exemption_key:
+        description: "Key to look up a centrally managed HIGH/CRITICAL exemption file (default: calling repository)"
+        required: false
+        type: string
+        default: ""
     secrets:
       AWS_ECR_ACCOUNT_ID:
         description: "AWS Account ID for ECR"
@@ -60,6 +65,7 @@ jobs:
         uses: Home-Office-Digital/core-cloud-workflow-docker-actions/actions/scan@1.2.0
         with:
           image: ${{ inputs.image_name }}:${{ inputs.image_tag }}
+          exemption_key: ${{ inputs.exemption_key }}
 
       - name: Push Docker Image to ECR
         uses: Home-Office-Digital/core-cloud-workflow-docker-actions/actions/push@1.2.0

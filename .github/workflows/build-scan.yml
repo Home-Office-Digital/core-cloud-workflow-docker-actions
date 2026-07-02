@@ -27,6 +27,11 @@ on:
         required: false
         type: boolean
         default: true
+      exemption_key:
+        description: "Key to look up a centrally managed HIGH/CRITICAL exemption file (default: calling repository)"
+        required: false
+        type: string
+        default: ""
 
 jobs:
   build-scan:
@@ -53,3 +58,4 @@ jobs:
         uses: Home-Office-Digital/core-cloud-workflow-docker-actions/actions/scan@1.2.0
         with:
           image: ${{ inputs.image_name }}:${{ inputs.image_tag }}
+          exemption_key: ${{ inputs.exemption_key }}

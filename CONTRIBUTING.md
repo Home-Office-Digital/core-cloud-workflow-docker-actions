@@ -11,6 +11,8 @@ This repository contains:
 
 * `actions` — composite GitHub Action for running docker actions
 
+* `exemptions/**` — centrally managed HIGH/CRITICAL Trivy exemptions for consuming repositories, see `exemptions/README.md`
+
 * `tests/**` — intentionally valid and invalid docker test fixtures
 
 * `sonar-project.properties` — SAST configuration
