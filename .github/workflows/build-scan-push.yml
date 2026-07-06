@@ -56,10 +56,10 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Set up Docker 
-        uses: Home-Office-Digital/core-cloud-workflow-docker-actions/actions/setup@1.4.0
+        uses: Home-Office-Digital/core-cloud-workflow-docker-actions/actions/setup@ccl-10172-refactor
       
       - name: Build Docker Image
-        uses: Home-Office-Digital/core-cloud-workflow-docker-actions/actions/build@1.4.0
+        uses: Home-Office-Digital/core-cloud-workflow-docker-actions/actions/build@ccl-10172-refactor
         with:
           working_directory: ${{ inputs.working_directory }}
           dockerfile: ${{ inputs.dockerfile }}
@@ -68,7 +68,7 @@ jobs:
           tag_latest: ${{ inputs.tag_latest }}
       
       - name: Scan Docker Image with Trivy
-        uses: Home-Office-Digital/core-cloud-workflow-docker-actions/actions/scan@1.4.0
+        uses: Home-Office-Digital/core-cloud-workflow-docker-actions/actions/scan@ccl-10172-refactor
         with:
           image: ${{ inputs.image_name }}:${{ inputs.image_tag }}
           exemption_key: ${{ inputs.exemption_key }}
@@ -76,7 +76,7 @@ jobs:
           app_private_key: ${{ secrets.EXEMPTIONS_APP_PRIVATE_KEY }}
 
       - name: Push Docker Image to ECR
-        uses: Home-Office-Digital/core-cloud-workflow-docker-actions/actions/push@1.4.0
+        uses: Home-Office-Digital/core-cloud-workflow-docker-actions/actions/push@ccl-10172-refactor
         with:
           working_directory: ${{ inputs.working_directory }}
           dockerfile: ${{ inputs.working_directory }}/${{ inputs.dockerfile }}
