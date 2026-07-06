@@ -109,6 +109,7 @@ runs:
 
     - name: Set Trivy scan exit code
       id: trivy_scan_exit_code
+      if: always()
       shell: bash
       run: |
         if [ "${{ steps.trivy_scan.conclusion }}" = "success" ]; then
