@@ -1,8 +1,0 @@
-vulnerabilities:
-  - id: CVE-2026-33671
-    statement: "Approved by SWG, see minutes: https://collaboration.homeoffice.gov.uk/spaces/CORE/pages/470086828/2026+06+19-+SWG+Agenda+and+Minutes"
-    expired_at: "2027-01-02T00:00:00Z"
-
-  - id: CVE-2026-48815
-    statement: "Approved by SWG, see minutes: https://collaboration.homeoffice.gov.uk/spaces/CORE/pages/470086828/2026+06+19-+SWG+Agenda+and+Minutes"
-    expired_at: "2027-01-02T00:00:00Z"

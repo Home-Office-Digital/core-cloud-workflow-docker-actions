@@ -9,7 +9,19 @@ inputs:
   exemption_key:
     description: >
       Key used to look up a centrally managed HIGH/CRITICAL exemption file, stored in
-      this repository at exemptions/<exemption_key>.trivyignore.yaml.
+      Home-Office-Digital/core-cloud-cve-exemptions at exemptions/<exemption_key>.trivyignore.yaml.
+    required: false
+    type: string
+    default: ""
+
+  app_id:
+    description: Exemptions secret applied by the Core Cloud team when exemptions are approved and required.
+    required: false
+    type: string
+    default: ""
+
+  app_private_key:
+    description: Exemptions secret applied by the Core Cloud team when exemptions are approved and required.
     required: false
     type: string
     default: ""
@@ -27,11 +39,29 @@ runs:
   using: "composite"
 
   steps:
+    - name: Mint exemptions repo token
+      id: mint_token
+      if: inputs.app_id != '' && inputs.app_private_key != ''
+      uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+      with:
+        app-id: ${{ inputs.app_id }}
+        private-key: ${{ inputs.app_private_key }}
+        owner: Home-Office-Digital
+        repositories: core-cloud-cve-exemptions
+
     - name: Resolve centrally managed exemptions
       id: resolve_exemptions
       shell: bash
+      env:
+        EXEMPTIONS_TOKEN: ${{ steps.mint_token.outputs.token }}
       run: |
         set -e
+
+        if [ -z "$EXEMPTIONS_TOKEN" ]; then
+          echo "No exemptions app credentials configured for this repo - skipping exemption lookup"
+          echo "ignorefile_path=" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
 
         key="${{ inputs.exemption_key }}"
         if [ -z "$key" ]; then
@@ -45,14 +75,22 @@ runs:
             ;;
         esac
 
-        exemptions_file="${{ github.action_path }}/../../exemptions/${key}.trivyignore.yaml"
+        exemptions_file="$(mktemp "$RUNNER_TEMP/exemption-XXXXXX.yaml")"
 
-        if [ -f "$exemptions_file" ]; then
+        status="$(curl -s -o "$exemptions_file" -w '%{http_code}' \
+          -H "Authorization: Bearer $EXEMPTIONS_TOKEN" \
+          -H "Accept: application/vnd.github.raw+json" \
+          "https://api.github.com/repos/Home-Office-Digital/core-cloud-cve-exemptions/contents/exemptions/${key}.trivyignore.yaml")"
+
+        if [ "$status" = "200" ]; then
           echo "Applying centrally managed exemption file for '$key'"
           echo "ignorefile_path=$exemptions_file" >> "$GITHUB_OUTPUT"
-        else
+        elif [ "$status" = "404" ]; then
           echo "No centrally managed exemptions found for '$key'"
           echo "ignorefile_path=" >> "$GITHUB_OUTPUT"
+        else
+          echo "::error::Failed to fetch exemption file for '$key' (HTTP $status)"
+          exit 1
         fi
 
     - name: Run Trivy vulnerability scanner

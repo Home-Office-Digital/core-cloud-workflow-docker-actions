@@ -48,6 +48,6 @@ jobs:
 The actions can be used in similar manner as well
 
 ## HIGH/CRITICAL exemptions
-
-If a consuming repository has a risk-accepted exception and it has been approveed by SWG, then a PR is raised in the `exemptions/` directory.
-See [`exemptions/README.md`](exemptions/README.md) for the request process.
+Exemptions for HIGH/CRITICAL vulnerabilities can be applied by the Core Cloud team when approved and required. The following secrets are required in order to use exemptions and will be applied by the Core Cloud team:
+- EXEMPTIONS_APP_ID
+- EXEMPTIONS_APP_PRIVATE_KEY
