@@ -32,6 +32,13 @@ on:
         required: false
         type: string
         default: ""
+    secrets:
+      EXEMPTIONS_APP_ID:
+        description: Exemptions secret applied by the Core Cloud team when exemptions are approved and required.
+        required: false
+      EXEMPTIONS_APP_PRIVATE_KEY:
+        description: Exemptions secret applied by the Core Cloud team when exemptions are approved and required.
+        required: false
 
 jobs:
   build-scan:
@@ -59,3 +66,5 @@ jobs:
         with:
           image: ${{ inputs.image_name }}:${{ inputs.image_tag }}
           exemption_key: ${{ inputs.exemption_key }}
+          app_id: ${{ secrets.EXEMPTIONS_APP_ID }}
+          app_private_key: ${{ secrets.EXEMPTIONS_APP_PRIVATE_KEY }}

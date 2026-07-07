@@ -2,7 +2,8 @@ name: Self Test - docker build action
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
   pull_request:
     branches:
       - main
@@ -110,7 +111,27 @@ jobs:
             echo "cve_count=$(echo "$cves" | wc -l | tr -d ' ')" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Run scan with no matching exemption (expect failure)
+      - name: Run scan with no app credentials configured (expect failure, opted-out default)
+        id: scan_no_creds
+        if: steps.discover_cve.outputs.cve_count != '0'
+        uses: ./actions/scan
+        continue-on-error: true
+        with:
+          image: "hello-world:exemption-test"
+
+      - name: Assert scan with no app credentials failed unexempted
+        if: steps.discover_cve.outputs.cve_count != '0'
+        run: |
+          if [ "${{ steps.scan_no_creds.outputs.trivy_scan_exit_code }}" -eq 0 ]; then
+            echo "Expected scan with no app credentials to fail but it succeeded."
+            exit 1
+          fi
+          if [ -n "${{ steps.scan_no_creds.outputs.exemption_file_applied }}" ]; then
+            echo "Expected no exemption file to be applied but one was."
+            exit 1
+          fi
+
+      - name: Run scan with app credentials but no matching exemption (expect failure)
         id: scan_unexempted
         if: steps.discover_cve.outputs.cve_count != '0'
         uses: ./actions/scan
@@ -118,6 +139,8 @@ jobs:
         with:
           image: "hello-world:exemption-test"
           exemption_key: "self-test/no-such-key"
+          app_id: ${{ secrets.EXEMPTIONS_APP_ID }}
+          app_private_key: ${{ secrets.EXEMPTIONS_APP_PRIVATE_KEY }}
 
       - name: Assert unexempted scan failed
         if: steps.discover_cve.outputs.cve_count != '0'
@@ -131,45 +154,25 @@ jobs:
             exit 1
           fi
 
-      - name: Write temporary central exemption fixture
-        if: steps.discover_cve.outputs.cve_count != '0'
-        shell: bash
-        env:
-          CVES: ${{ steps.discover_cve.outputs.cves }}
-        run: |
-          mkdir -p exemptions/self-test
-          {
-            echo "vulnerabilities:"
-            while IFS= read -r cve; do
-              [ -z "$cve" ] && continue
-              echo "  - id: ${cve}"
-              echo "    statement: \"Self-test fixture verifying centrally managed exemptions suppress a real finding.\""
-              echo "    expired_at: \"2099-01-01T00:00:00Z\""
-            done <<< "$CVES"
-          } > exemptions/self-test/exemption-check.trivyignore.yaml
-          cat exemptions/self-test/exemption-check.trivyignore.yaml
-
-      - name: Run scan with a matching centrally managed exemption (expect success)
+      - name: Run scan against the permanent self-test exemption fixture (expect success)
         id: scan_exempted
         if: steps.discover_cve.outputs.cve_count != '0'
         uses: ./actions/scan
         with:
           image: "hello-world:exemption-test"
           exemption_key: "self-test/exemption-check"
+          app_id: ${{ secrets.EXEMPTIONS_APP_ID }}
+          app_private_key: ${{ secrets.EXEMPTIONS_APP_PRIVATE_KEY }}
 
       - name: Assert exempted scan succeeded
         if: steps.discover_cve.outputs.cve_count != '0'
         run: |
           if [ "${{ steps.scan_exempted.outputs.trivy_scan_exit_code }}" -ne 0 ]; then
-            echo "Expected scan with a matching centrally managed exemption to succeed but it failed."
+            echo "Expected scan against the permanent self-test exemption fixture to succeed but it failed. If this is failing after a base image update, exemptions/trivy/self-test/exemption-check.trivyignore.yaml in core-cloud-cve-exemptions needs a new CVE added."
             exit 1
           fi
           if [ -z "${{ steps.scan_exempted.outputs.exemption_file_applied }}" ]; then
             echo "Expected the exemption file to be reported as applied but it wasn't."
             exit 1
           fi
-
-      - name: Clean up fixture
-        if: always()
-        run: rm -rf exemptions/self-test
 
