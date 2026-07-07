@@ -9,7 +9,7 @@ inputs:
   exemption_key:
     description: >
       Key used to look up a centrally managed HIGH/CRITICAL exemption file, stored in
-      Home-Office-Digital/core-cloud-cve-exemptions at exemptions/<exemption_key>.trivyignore.yaml.
+      Home-Office-Digital/core-cloud-cve-exemptions at exemptions/trivy/<exemption_key>.trivyignore.yaml.
     required: false
     type: string
     default: ""
@@ -80,7 +80,7 @@ runs:
         status="$(curl -s -o "$exemptions_file" -w '%{http_code}' \
           -H "Authorization: Bearer $EXEMPTIONS_TOKEN" \
           -H "Accept: application/vnd.github.raw+json" \
-          "https://api.github.com/repos/Home-Office-Digital/core-cloud-cve-exemptions/contents/exemptions/${key}.trivyignore.yaml")"
+          "https://api.github.com/repos/Home-Office-Digital/core-cloud-cve-exemptions/contents/exemptions/trivy/${key}.trivyignore.yaml")"
 
         if [ "$status" = "200" ]; then
           echo "Applying centrally managed exemption file for '$key'"

@@ -168,7 +168,7 @@ jobs:
         if: steps.discover_cve.outputs.cve_count != '0'
         run: |
           if [ "${{ steps.scan_exempted.outputs.trivy_scan_exit_code }}" -ne 0 ]; then
-            echo "Expected scan against the permanent self-test exemption fixture to succeed but it failed. If this is failing after a base image update, exemptions/self-test/exemption-check.trivyignore.yaml in core-cloud-cve-exemptions needs a new CVE added."
+            echo "Expected scan against the permanent self-test exemption fixture to succeed but it failed. If this is failing after a base image update, exemptions/trivy/self-test/exemption-check.trivyignore.yaml in core-cloud-cve-exemptions needs a new CVE added."
             exit 1
           fi
           if [ -z "${{ steps.scan_exempted.outputs.exemption_file_applied }}" ]; then
