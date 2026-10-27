@@ -32,6 +32,11 @@ on:
         required: false
         type: string
         default: ""
+      runner:
+        description: "Runner to execute the job on (default: ubuntu-latest)"
+        required: false
+        type: string
+        default: ubuntu-latest
     secrets:
       AWS_ECR_ACCOUNT_ID:
         description: "AWS Account ID for ECR"
@@ -49,7 +54,7 @@ on:
 jobs:
   build-scan-push:
     name: "Run docker build, trivy scan, and push to ecr registry"
-    runs-on: ubuntu-latest
+    runs-on: ${{ inputs.runner }}
 
     steps: 
       - name: Checkout Code

@@ -32,6 +32,11 @@ on:
         required: false
         type: string
         default: ""
+      runner:
+        description: "Runner to execute the job on (default: ubuntu-latest)"
+        required: false
+        type: string
+        default: ubuntu-latest
     secrets:
       EXEMPTIONS_APP_ID:
         description: Exemptions secret applied by the Core Cloud team when exemptions are approved and required.
@@ -43,7 +48,7 @@ on:
 jobs:
   build-scan:
     name: "Run docker build and then trivy scan"
-    runs-on: ubuntu-latest      
+    runs-on: ${{ inputs.runner }}
 
     steps: 
       - name: Checkout Code
